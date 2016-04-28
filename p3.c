@@ -11,6 +11,42 @@
 #include <stdint.h>
 #include "p2randomv2.h"
 
+
+int levelProbe (/**/int32_t** treeLevels/**/, int32_t currentLevel, int32_t prev_result, int32_t probe, int32_t fanout) {
+	
+	__m128i key =  _mm_cvtsi32_si128(probe);
+	key = _mm_shuffle_epi32(key, 0);
+	//-----probe level with fan out of 5---------
+	if(fanout==5) {		
+		__m128i lvl = _mm_load_si128(/**/ (__m128i*)&treeLevels[currentLevel][prev_result << 2]);
+		__m128i cmp_1 = _mm_cmpgt_epi32(lvl, key);
+		__m128 new_cmp = _mm_castsi128_ps(cmp_1);
+		int mask = _mm_movemask_ps(new_cmp);   // ps: epi32
+		int res = _bit_scan_forward(mask ^ 0x1FF);
+		res += (res << 2) + res;
+		return res;
+	}
+	//-----probe level with fan out of 9---------
+	else if (fanout==9) {
+		__m128i lvl_A = _mm_load_si128(( __m128i*)&treeLevels[currentLevel][ prev_result << 3]);
+		__m128i lvl_B = _mm_load_si128(( __m128i*)&treeLevels[currentLevel][(prev_result << 3) + 4]);
+		__m128i cmp_A = _mm_cmpgt_epi32(lvl_A, key);
+		__m128i cmp_B = _mm_cmpgt_epi32(lvl_B, key);
+		__m128i cmp = _mm_packs_epi32(cmp_A, cmp_B);
+		cmp = _mm_packs_epi16(cmp, _mm_setzero_si128());
+		int mask = _mm_movemask_epi8(cmp);
+		int res = _bit_scan_forward(mask ^ 0x1FFFF);
+		res += (prev_result << 3) + prev_result;
+		return res;
+	}
+	//-----probe level with fan out of 17---------
+	else if(fanout==17) {
+		
+	}
+}
+
+
+
 int main(int argc, char *argv[]) {
 	
 	int32_t k,p,nol;
@@ -27,7 +63,7 @@ int main(int argc, char *argv[]) {
 
 	nol = argc - 3;
 	
-	//printf("K %d P %d argc %d",k,p,argc);
+	printf("K %d P %d argc %d",k,p,argc);
 	int32_t *treeLevels[nol];
 	int32_t sizeOfLevel[nol], fanoutOfLevel[nol];
 	//Current position to insert at each level
@@ -133,44 +169,15 @@ int main(int argc, char *argv[]) {
 	rand32_t *gen1 = rand32_init(time(NULL));
 	int32_t *probes = generate(p, gen1);
 	free(gen1);
-
-	
+	int index = levelProbe(treeLevels,1,0,175,5);
+	printf("Index found: %d",index);
 
 
 return (0);
 
 }
 
-int levelProbe (/**/int32_t** treeLevels/**/, int32_t currentLevel, int32_t prev_result, int32_t probe, int32_t fanout) {
-	
-	__m128i key =  _mm_cvtsi32_si128(probe);
 
-	//-----probe level with fan out of 5---------
-	if(fanout==5) {		
-		register __m128i lvl = _mm_load_si128(/**/&treeLevels[currentLevel][prev_result << 2]);
-		register __m128i cmp_1 = _mm_cmpgt_epi32(lvl, key);
-		int mask = _mm_movemask_ps(cmp_1);   // ps: epi32
-		int res = _bit_scan_forward(mask ^ 0x1FF);
-		res += (res << 2) + res;
-		return res;
-	}
-	//-----probe level with fan out of 9---------
-	else if (fanout==9) {
-		__m128i lvl_A = _mm_load_si128(&treeLevels[currentLevel][ prev_result << 3]);
-		__m128i lvl_B = _mm_load_si128(&treeLevels[currentLevel][(prev_result << 3) + 4]);
-		__m128i cmp_A = _mm_cmpgt_epi32(lvl_A, key);
-		__m128i cmp_B = _mm_cmpgt_epi32(lvl_B, key);
-		__m128i cmp = _mm_packs_epi32(cmp_A, cmp_B);
-		cmp = _mm_packs_epi16(cmp, _mm_setzero_si128());
-		int mask = _mm_movemask_epi8(cmp);
-		int res = _bit_scan_forward(mask ^ 0x1FFFF);
-		res += (prev_result << 3) + prev_result;
-		return res;
-	}
-	//-----probe level with fan out of 17---------
-	else if(fanout==17) {
-		
-	}
-}
+
 
 
