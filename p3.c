@@ -5,7 +5,7 @@
 #include <smmintrin.h> //SSE4.1
 #include <nmmintrin.h> //SSE4.2
 #include <ammintrin.h> //SSE4A
-#include <x86in>
+
 
 int main(int argc, char *argv[]) {
 	
