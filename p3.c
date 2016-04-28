@@ -5,7 +5,11 @@
 #include <smmintrin.h> //SSE4.1
 #include <nmmintrin.h> //SSE4.2
 #include <ammintrin.h> //SSE4A
-
+#include <x86intrin.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include "p2randomv2.h"
 
 int main(int argc, char *argv[]) {
 	
@@ -137,28 +141,35 @@ return (0);
 
 }
 
-__m128i levelProbe (int32_t* treeLevels, int32_t currentLevel, __m128i prev_result) {
+int levelProbe (/**/int32_t** treeLevels/**/, int32_t currentLevel, int32_t prev_result, int32_t probe, int32_t fanout) {
+	
+	__m128i key =  _mm_cvtsi32_si128(probe);
+
 	//-----probe level with fan out of 5---------
-	if(fanoutOfLevel[currentLevel]==5) {		
-		lvl = _mm_load_si128(&index_L1[prev_result << 2]);
-		cmp_1 = _mm_cmpgt_epi32(lvl, key);
-		res = _mm_movemask_ps(cmp_1);   // ps: epi32
-		res = _bit_scan_forward(res ^ 0x1FF);
+	if(fanout==5) {		
+		register __m128i lvl = _mm_load_si128(/**/&treeLevels[currentLevel][prev_result << 2]);
+		register __m128i cmp_1 = _mm_cmpgt_epi32(lvl, key);
+		int mask = _mm_movemask_ps(cmp_1);   // ps: epi32
+		int res = _bit_scan_forward(mask ^ 0x1FF);
 		res += (res << 2) + res;
 		return res;
 	}
-
-	else if (fanoutOfLevel[currentLevel]==9) {
-		lvl_A = _mm_load_si128(&index_L2[ prev_result << 3]);
-		lvl_B = _mm_load_si128(&index_L2[(prev_result << 3) + 4]);
-		cmp_A = _mm_cmpgt_epi32(lvl_A, key);
-		cmp_B = _mm_cmpgt_epi32(lvl_B, key);
-		cmp = _mm_packs_epi32(cmp_A, cmp_B);
+	//-----probe level with fan out of 9---------
+	else if (fanout==9) {
+		__m128i lvl_A = _mm_load_si128(&treeLevels[currentLevel][ prev_result << 3]);
+		__m128i lvl_B = _mm_load_si128(&treeLevels[currentLevel][(prev_result << 3) + 4]);
+		__m128i cmp_A = _mm_cmpgt_epi32(lvl_A, key);
+		__m128i cmp_B = _mm_cmpgt_epi32(lvl_B, key);
+		__m128i cmp = _mm_packs_epi32(cmp_A, cmp_B);
 		cmp = _mm_packs_epi16(cmp, _mm_setzero_si128());
-		res = _mm_movemask_epi8(cmp);
-		res = _bit_scan_forward(res ^ 0x1FFFF);
+		int mask = _mm_movemask_epi8(cmp);
+		int res = _bit_scan_forward(mask ^ 0x1FFFF);
 		res += (prev_result << 3) + prev_result;
 		return res;
+	}
+	//-----probe level with fan out of 17---------
+	else if(fanout==17) {
+		
 	}
 }
 
