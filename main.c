@@ -68,7 +68,27 @@ int generalprobe(Tree* tree, size_t *fanout, int32_t probe)
                 }
                 //-----probe level with fan out of 17---------
                 else if(fanout[currentLevel]==17) {
-                        
+                        __m128i del_ABCD = _mm_load_si128(( __m128i *) &treeLevels[currentLevel][prev_result << 4]);
+			__m128i del_EFGH = _mm_load_si128(( __m128i *) &treeLevels[currentLevel][(prev_result << 4) + 4]);
+			__m128i del_IJKL = _mm_load_si128(( __m128i *) &treeLevels[currentLevel][(prev_result << 4) + 8]);
+			__m128i del_MNOP = _mm_load_si128(( __m128i *) &treeLevels[currentLevel][(prev_result << 4) + 12]);
+		    
+			// compare with 16 delimiters stored in 4 registers
+			__m128i cmp_ABCD = _mm_cmpgt_epi32(key, del_ABCD);
+			__m128i cmp_EFGH = _mm_cmpgt_epi32(key, del_EFGH);
+			__m128i cmp_IJKL = _mm_cmpgt_epi32(key, del_IJKL);
+			__m128i cmp_MNOP = _mm_cmpgt_epi32(key, del_MNOP);
+
+			// pack results to 16-bytes in a single SIMD register
+			__m128i cmp_A_to_H = _mm_packs_epi32(cmp_ABCD, cmp_EFGH);
+			__m128i cmp_I_to_P = _mm_packs_epi32(cmp_IJKL, cmp_MNOP);
+			__m128i cmp_A_to_P = _mm_packs_epi16(cmp_A_to_H, cmp_I_to_P);
+
+			// extract the mask the LSB
+			int mask = _mm_movemask_epi8(cmp_A_to_P);
+			res = _bit_scan_forward(mask ^ 0x1FFFFFFFF); 
+			res += (prev_result << 4) + prev_result;
+			//res += (r_0 << 4);  // asm: bsf
                 }
                 prev_result = res;
                 printf("Yo mama so fat : \n %d \n", res);
