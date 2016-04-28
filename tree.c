@@ -76,12 +76,12 @@ Tree* build_index(size_t num_levels, size_t fanout[], size_t num_keys, int32_t k
         }
 
         // print the tree
-         for (size_t i = 0; i < num_levels; ++i) {
-                 printf("Level %zu:", i);
-                 for (size_t j = 0; j < key_count[i]; ++j)
-                         printf(" %d", tree->key_array[i][j]);
-                 printf("\n");
-         }
+        for (size_t i = 0; i < num_levels; ++i) {
+                printf("Level %zu:", i);
+                for (size_t j = 0; j < key_count[i]; ++j)
+                        printf(" %d", tree->key_array[i][j]);
+                printf("\n");
+        }
 
         free(array_capacity);
         free(key_count);

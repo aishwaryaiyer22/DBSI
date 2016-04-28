@@ -7,41 +7,50 @@
 #include "p2random.h"
 #include "tree.h"
 
-#include <xmmintrin.h> //SSE
-#include <emmintrin.h> //SSE2
-#include <pmmintrin.h> //SSE3
-#include <tmmintrin.h> //SSSE3
-#include <smmintrin.h> //SSE4.1
-#include <nmmintrin.h> //SSE4.2
-#include <ammintrin.h> //SSE4A
+
+#include <xmmintrin.h>
+#include <emmintrin.h> 
+#include <pmmintrin.h> 
+#include <tmmintrin.h> 
+#include <smmintrin.h> 
+#include <nmmintrin.h> 
+#include <ammintrin.h> 
 #include <x86intrin.h>
 
-void print128 (__m128i n) {
-        int32_t *i = (int32_t*) &n;
-        printf("\nNumber : %d %d %d %d\n", n[0],n[1],n[2],n[3]);
+void split32(__m128i x)
+{
+        int32_t *pt = (int32_t*) &x;
+       // printf("\nPrinting values : \n");
+        printf("%d %d %d %d\n", x[0],x[1],x[2],x[3]);
+
 }
 
-int probe_index_rgen (Tree* tree, size_t *fanout, int32_t num_levels, int32_t probe) {
+//GENERAL PROBE
+int generalprobe(Tree* tree, size_t *fanout, int32_t probe) 
+{
         // int32_t currentLevel, int32_t prev_result, int32_t probe, int32_t fanout) {
         
         int32_t currentLevel = 0, prev_result = 0,res;
         int32_t** treeLevels = tree->key_array;
-        
+        int32_t num_levels = tree->num_levels;
         __m128i key =  _mm_cvtsi32_si128(probe);
-        print128(key);
+        split32(key);
         key = _mm_shuffle_epi32(key, 0);
-
+        printf("\nNumber of levels : %d\n",num_levels);
         for(currentLevel=0;currentLevel < num_levels ; currentLevel++) {
 
                 
                 //-----probe level with fan out of 5---------
                 if(fanout[currentLevel]==5) {         
                         __m128i lvl = _mm_load_si128(/**/ (__m128i*)&treeLevels[currentLevel][prev_result << 2]);
-                        __m128i cmp_1 = _mm_cmpgt_epi32(lvl, key);
+                        __m128i cmp_1 = _mm_cmpgt_epi32(key,lvl);
                         __m128 new_cmp = _mm_castsi128_ps(cmp_1);
                         int mask = _mm_movemask_ps(new_cmp);   // ps: epi32
+                        printf("Mask : %d\n",mask);
                         res = _bit_scan_forward(mask ^ 0x1FF);
-                        res += (res << 2) + res;
+                        printf("res : %d\n",res);
+                        res += (prev_result << 2) + prev_result;
+                        printf("res : %d\n",res);
                         //return res;
                 }
                 //-----probe level with fan out of 9---------
@@ -63,11 +72,15 @@ int probe_index_rgen (Tree* tree, size_t *fanout, int32_t num_levels, int32_t pr
                 }
                 prev_result = res;
                 printf("Yo mama so fat : \n %d \n", res);
-                break;
+                //break;
 
         }
         return res;
 }
+
+
+//HARD-CODED PROBE IMPLEMENTATION
+
 
 int main(int argc, char* argv[]) {
         // parsing arguments
@@ -89,7 +102,7 @@ int main(int argc, char* argv[]) {
         assert(delimiter != NULL);
         Tree* tree = build_index(num_levels, fanout, num_keys, delimiter);
         free(delimiter);
-        free(fanout);
+        //free(fanout);
         if (tree == NULL) {
                 free(gen);
                 exit(EXIT_FAILURE);
@@ -104,12 +117,14 @@ int main(int argc, char* argv[]) {
 
         // perform index probing (Phase 2)
         for (size_t i = 0; i < num_probes; ++i) {
-                result[i] = probe_index_rgen(tree, fanout, num_levels, probe[i]);
+                result[i] = generalprobe(tree, fanout, num_probes);
+                break;
         }
 
         // output results
         for (size_t i = 0; i < num_probes; ++i) {
                 fprintf(stdout, "%d %u\n", probe[i], result[i]);
+                break;
         }
 
         // cleanup and exit
