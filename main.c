@@ -297,18 +297,18 @@ int main(int argc, char* argv[]) {
         uint32_t* result = malloc(sizeof(uint32_t) * num_probes);
         assert(result != NULL);
 
-        struct timeval tv1, tv2;
+        struct timeval tv11, tv12, tv21, tv22, tv31, tv32;
         
         printf("\nRunning it on Normal general case\n\n");
-        gettimeofday(&tv1,NULL);
+        gettimeofday(&tv11,NULL);
         // perform index probing (Phase 2) - The general case
         for (size_t i = 0; i < num_probes; ++i) {
                 result[i] = probe_gen_search(tree, fanout, probe[i]);
         }
-        gettimeofday(&tv2,NULL);
-        double t1 = (tv2.tv_sec - tv1.tv_sec)*1000000 + tv2.tv_usec - tv1.tv_usec;
+        gettimeofday(&tv12,NULL);
+        double t1 = (tv12.tv_sec - tv11.tv_sec)*1000000 + tv12.tv_usec - tv11.tv_usec;
 
-        gettimeofday(&tv1,NULL);
+        gettimeofday(&tv21,NULL);
        
         if (num_levels == 3 && fanout[0]==9 && fanout[1] == 5 && fanout[2]== 9) {
             // The hardcoded case
@@ -339,8 +339,8 @@ int main(int argc, char* argv[]) {
             */
 
         }
-        gettimeofday(&tv2,NULL);
-        double t2 = (tv2.tv_sec - tv1.tv_sec)*1000000 + tv2.tv_usec - tv1.tv_usec;
+        gettimeofday(&tv22,NULL);
+        double t2 = (tv22.tv_sec - tv21.tv_sec)*1000000 + tv22.tv_usec - tv21.tv_usec;
         
         
         
@@ -353,12 +353,12 @@ int main(int argc, char* argv[]) {
         
         // -- BS implementation from part 1
         printf("\nRunning it on BS implementation\n\n");
-        gettimeofday(&tv1,NULL);
+        gettimeofday(&tv31,NULL);
         for (size_t i = 0; i < num_probes; ++i) {
                 result[i] = probe_index(tree, probe[i]);
         }
-        gettimeofday(&tv2,NULL);
-        double t3 = (tv2.tv_sec - tv1.tv_sec)*1000000 + tv2.tv_usec - tv1.tv_usec;
+        gettimeofday(&tv32,NULL);
+        double t3 = (tv32.tv_sec - tv31.tv_sec)*1000000 + tv32.tv_usec - tv31.tv_usec;
         // output results
         /*
         for (size_t i = 0; i < num_probes; ++i) {
