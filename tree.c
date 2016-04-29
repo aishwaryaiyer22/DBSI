@@ -52,7 +52,7 @@ Tree* build_index(size_t num_levels, size_t fanout[], size_t num_keys, int32_t k
                 size_t level = num_levels - 1;
                 while (key_count[level] == array_capacity[level])
                         level -= 1;
-                tree->key_array[level][key_count[level]] = i;//key[i];
+                tree->key_array[level][key_count[level]] = key[i];
                 key_count[level] += 1;
                 while (level < num_levels - 1) {
                         level += 1;
