@@ -6,6 +6,7 @@
 
 #include "p2random.h"
 #include "tree.h"
+#include <sys/time.h>
 
 
 #include <xmmintrin.h>
@@ -27,7 +28,7 @@ void print128(__m128i x)
 }
 //Harcoded probing function
 int* harcoded_probing(Tree* tree, int32_t* probe) {
-        printf("Reached the harcoded_probing function \n");
+        //printf("Reached the harcoded_probing function \n");
         __m128i k = _mm_loadu_si128((__m128i*)probe);
         register __m128i k1 = _mm_shuffle_epi32(k, _MM_SHUFFLE(0,0,0,0));
         register __m128i k2 = _mm_shuffle_epi32(k, _MM_SHUFFLE(1,1,1,1));
@@ -296,6 +297,9 @@ int main(int argc, char* argv[]) {
         uint32_t* result = malloc(sizeof(uint32_t) * num_probes);
         assert(result != NULL);
 
+        struct timeval tv1, tv2;
+        gettimeofday(&tv1,NULL);
+       
         if (num_levels == 3 && fanout[0]==9 && fanout[1] == 5 && fanout[2]== 9) {
             // The hardcoded case
             int32_t *r;
@@ -307,6 +311,7 @@ int main(int argc, char* argv[]) {
                 printf("Probe count should be multiples of 4..\n");
                 goto exit;
             }
+            printf("Running the harcoded_probing function \n");
             for (size_t i = 0; i < num_probes; i+=4) {
                     r = harcoded_probing(tree, &probe[i]);
                     result[i]   = r[0];
@@ -315,30 +320,52 @@ int main(int argc, char* argv[]) {
                     result[i+3] = r[3];
                     free(r);
             }
-        } else {
-            // perform index probing (Phase 2) - The general case
-            printf("Calling the general probing function \n");
+        
+            // output results -- Uncomment if you want to see the result
+            /*
             for (size_t i = 0; i < num_probes; ++i) {
-                    result[i] = probe_gen_search(tree, fanout, probe[i]);
-            }
-        }
-        // output results
-        for (size_t i = 0; i < num_probes; ++i) {
-                fprintf(stdout, "%d %u\n", probe[i], result[i]);
-        }
+                    fprintf(stdout, "%d %u\n", probe[i], result[i]);
+            }*/
 
-        /*
-        printf("\n\Running it on Normal general case too ");
-// perform index probing (Phase 2) - The general case
+        }
+        gettimeofday(&tv2,NULL);
+        int t1 = tv2.tv_usec = tv1.tv_usec;
+        
+        
+        printf("\nRunning it on Normal general case\n\n");
+        gettimeofday(&tv1,NULL);
+        // perform index probing (Phase 2) - The general case
         for (size_t i = 0; i < num_probes; ++i) {
                 result[i] = probe_gen_search(tree, fanout, probe[i]);
         }
-        
+        gettimeofday(&tv2,NULL);
+        int t2 = tv2.tv_usec = tv1.tv_usec;
         // output results
+        /*
         for (size_t i = 0; i < num_probes; ++i) {
                 fprintf(stdout, "%d %u\n", probe[i], result[i]);
         }
         */
+        
+        // -- BS implementation from part 1
+        printf("\nRunning it on BS implementation\n\n");
+        gettimeofday(&tv1,NULL);
+        for (size_t i = 0; i < num_probes; ++i) {
+                result[i] = probe_index(tree, probe[i]);
+        }
+        gettimeofday(&tv2,NULL);
+        int t3 = tv2.tv_usec = tv1.tv_usec;
+        // output results
+        /*
+        for (size_t i = 0; i < num_probes; ++i) {
+                fprintf(stdout, "%d %u\n", probe[i], result[i]);
+        }
+        */
+
+        printf("Time Harcoded = %d \n",t1);
+        printf("Time General  = %d \n",t2);
+        printf("Time BS       = %d \n",t3);
+        
         exit:
         // cleanup and exit
         free(fanout);
