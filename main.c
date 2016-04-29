@@ -17,6 +17,8 @@
 #include <ammintrin.h> 
 #include <x86intrin.h>
 
+__m128i lvl_A,lvl_B;
+
 void print128(__m128i x)
 {
         int32_t *pt = (int32_t*) &x;
@@ -24,9 +26,169 @@ void print128(__m128i x)
 
 }
 //Harcoded probing function
-int harcoded_probing(Tree* tree, int32_t* probe) {
+int* harcoded_probing(Tree* tree, int32_t* probe) {
         printf("Reached the harcoded_probing function \n");
+        __m128i k = _mm_cvtsi32_si128(probe[0]);
+        register __m128i k1 = _mm_shuffle_epi32(k, _MM_SHUFFLE(0,0,0,0));
+        register __m128i k2 = _mm_shuffle_epi32(k, _MM_SHUFFLE(1,1,1,1));
+        register __m128i k3 = _mm_shuffle_epi32(k, _MM_SHUFFLE(2,2,2,2));
+        register __m128i k4 = _mm_shuffle_epi32(k, _MM_SHUFFLE(3,3,3,3));
+
+        int32_t currentLevel = 1, prev_result1 = 0,prev_result2 = 0,prev_result3 = 0,prev_result4 = 0,res1,res2,res3,res4;
+        int32_t** treeLevels = tree->key_array;
+        int mask;
+
+        int *ress = malloc(sizeof(int32_t) * 4);
+        __m128i lvl;
+        __m128i cmp_A;
+        __m128i cmp_B;
+        __m128i cmp;   
+        __m128i cmp_1;
+        __m128 new_cmp;
+
+        //-----------------fan out of 9-------------------
+
+        //k1
+        cmp_A = _mm_cmpgt_epi32(k1, lvl_A);
+        cmp_B = _mm_cmpgt_epi32(k1, lvl_B);
+        cmp = _mm_packs_epi32(cmp_A, cmp_B);
+        cmp = _mm_packs_epi16(cmp, _mm_setzero_si128());
+        mask = _mm_movemask_epi8(cmp);
+        res1 = _bit_scan_forward(mask ^ 0x1FFFF);
+        res1 += (prev_result1 << 3) + prev_result1;
+        prev_result1=res1;
+        //k2
+        cmp_A = _mm_cmpgt_epi32(k2, lvl_A);
+        cmp_B = _mm_cmpgt_epi32(k2, lvl_B);
+        cmp = _mm_packs_epi32(cmp_A, cmp_B);
+        cmp = _mm_packs_epi16(cmp, _mm_setzero_si128());
+        mask = _mm_movemask_epi8(cmp);
+        res2 = _bit_scan_forward(mask ^ 0x1FFFF);
+        res2 += (prev_result2 << 3) + prev_result2;
+        prev_result2=res2;
+
+        //k3    
+        cmp_A = _mm_cmpgt_epi32(k3, lvl_A);
+        cmp_B = _mm_cmpgt_epi32(k3, lvl_B);
+        cmp = _mm_packs_epi32(cmp_A, cmp_B);
+        cmp = _mm_packs_epi16(cmp, _mm_setzero_si128());
+        mask = _mm_movemask_epi8(cmp);
+        res3 = _bit_scan_forward(mask ^ 0x1FFFF);
+        res3 += (prev_result3 << 3) + prev_result3;
+        prev_result3=res3;
+
+        //k4
+        cmp_A = _mm_cmpgt_epi32(k4, lvl_A);
+        cmp_B = _mm_cmpgt_epi32(k4, lvl_B);
+        cmp = _mm_packs_epi32(cmp_A, cmp_B);
+        cmp = _mm_packs_epi16(cmp, _mm_setzero_si128());
+        mask = _mm_movemask_epi8(cmp);
+        res4 = _bit_scan_forward(mask ^ 0x1FFFF);
+        res4 += (prev_result4 << 3) + prev_result4;
+        prev_result4=res4;
+
+        //---------------------Fan out of 5-----------------------
+
+
+        //----k1---
+        lvl = _mm_load_si128((__m128i*)&treeLevels[1][prev_result1 << 2]);
+        cmp_1 = _mm_cmpgt_epi32(k1,lvl);
+        new_cmp = _mm_castsi128_ps(cmp_1);
+        mask = _mm_movemask_ps(new_cmp);   // ps: epi32
+        res1 = _bit_scan_forward(mask ^ 0x1FF);
+        res1 += (prev_result1 << 2) + prev_result1;
+        prev_result1=res1;
+
+
+        //----k2---
+        lvl = _mm_load_si128((__m128i*)&treeLevels[1][prev_result2 << 2]);
+        cmp_1 = _mm_cmpgt_epi32(k2,lvl);
+        new_cmp = _mm_castsi128_ps(cmp_1);
+        mask = _mm_movemask_ps(new_cmp);   // ps: epi32
+        res2 = _bit_scan_forward(mask ^ 0x1FF);
+        res2 += (prev_result2 << 2) + prev_result2;
+        prev_result2=res2;
+
+        //----k3---
+        lvl = _mm_load_si128((__m128i*)&treeLevels[1][prev_result3 << 2]);
+        cmp_1 = _mm_cmpgt_epi32(k3,lvl);
+        new_cmp = _mm_castsi128_ps(cmp_1);
+        mask = _mm_movemask_ps(new_cmp);   // ps: epi32
+        res3 = _bit_scan_forward(mask ^ 0x1FF);
+        //printf("res : %d\n",res);
+        res3 += (prev_result3 << 2) + prev_result3;
+        prev_result3=res3;
+
+        //----k4---
+        lvl = _mm_load_si128((__m128i*)&treeLevels[1][prev_result4 << 2]);
+        cmp_1 = _mm_cmpgt_epi32(k4,lvl);
+        new_cmp = _mm_castsi128_ps(cmp_1);
+        mask = _mm_movemask_ps(new_cmp);   // ps: epi32
+        //printf("Mask : %d\n",mask);
+        res4 = _bit_scan_forward(mask ^ 0x1FF);
+        //printf("res : %d\n",res);
+        res4 += (prev_result4 << 2) + prev_result4;
+        //printf("res : %d\n",res);
+        prev_result4=res4;
+
+        //----------------fan out 9---------------------
+
+        __m128i lvl_1;
+                __m128i lvl_2;
+        //k1
+        lvl_1 = _mm_load_si128(( __m128i*)&treeLevels[2][ prev_result1 << 3]);
+        lvl_2 = _mm_load_si128(( __m128i*)&treeLevels[2][(prev_result1 << 3) + 4]);
+        cmp_A = _mm_cmpgt_epi32(k1, lvl_1);
+        cmp_B = _mm_cmpgt_epi32(k1, lvl_2);
+        cmp = _mm_packs_epi32(cmp_A, cmp_B);
+        cmp = _mm_packs_epi16(cmp, _mm_setzero_si128());
+        mask = _mm_movemask_epi8(cmp);
+        res1 = _bit_scan_forward(mask ^ 0x1FFFF);
+        res1 += (prev_result1 << 3) + prev_result1;
+        prev_result1=res1;
         
+        //k2
+        lvl_1 = _mm_load_si128(( __m128i*)&treeLevels[2][ prev_result2 << 3]);
+        lvl_2 = _mm_load_si128(( __m128i*)&treeLevels[2][(prev_result2 << 3) + 4]);
+        cmp_A = _mm_cmpgt_epi32(k2, lvl_1);
+        cmp_B = _mm_cmpgt_epi32(k2, lvl_2);
+        cmp = _mm_packs_epi32(cmp_A, cmp_B);
+        cmp = _mm_packs_epi16(cmp, _mm_setzero_si128());
+        mask = _mm_movemask_epi8(cmp);
+        res2 = _bit_scan_forward(mask ^ 0x1FFFF);
+        res2 += (prev_result2 << 3) + prev_result2;
+        prev_result2=res2;
+
+        //k3    
+        lvl_1 = _mm_load_si128(( __m128i*)&treeLevels[2][ prev_result3 << 3]);
+        lvl_2 = _mm_load_si128(( __m128i*)&treeLevels[2][(prev_result3 << 3) + 4]);
+        cmp_A = _mm_cmpgt_epi32(k3, lvl_1);
+        cmp_B = _mm_cmpgt_epi32(k3, lvl_2);
+        cmp = _mm_packs_epi32(cmp_A, cmp_B);
+        cmp = _mm_packs_epi16(cmp, _mm_setzero_si128());
+        mask = _mm_movemask_epi8(cmp);
+        res3 = _bit_scan_forward(mask ^ 0x1FFFF);
+        res3 += (prev_result3 << 3) + prev_result3;
+        prev_result3=res3;
+
+        //k4
+        lvl_1 = _mm_load_si128(( __m128i*)&treeLevels[2][ prev_result4 << 3]);
+        lvl_2 = _mm_load_si128(( __m128i*)&treeLevels[2][(prev_result4 << 3) + 4]);
+        cmp_A = _mm_cmpgt_epi32(k4, lvl_1);
+        cmp_B = _mm_cmpgt_epi32(k4, lvl_2);
+        cmp = _mm_packs_epi32(cmp_A, cmp_B);
+        cmp = _mm_packs_epi16(cmp, _mm_setzero_si128());
+        mask = _mm_movemask_epi8(cmp);
+        res4 = _bit_scan_forward(mask ^ 0x1FFFF);
+        res4 += (prev_result4 << 3) + prev_result4;
+        prev_result4=res4;
+        
+        ress[0] = res1;
+        ress[1] = res2;
+        ress[2] = res3;
+        ress[3] = res4;
+        
+        return ress;
 }
 
 //general probing function
@@ -138,12 +300,17 @@ int main(int argc, char* argv[]) {
         if (num_levels == 3 && fanout[0]==9 && fanout[1] == 5 && fanout[2]== 9) {
             // The hardcoded case
             int32_t *r;
+            //Keeping the root
+            int32_t** treeLevels = tree->key_array;
+            lvl_A = _mm_load_si128((__m128i*)&treeLevels[0][0]);
+            lvl_B = _mm_load_si128((__m128i*)&treeLevels[0][4]);
             for (size_t i = 0; i < num_probes; i+=4) {
-                    r = harcoded_probing(tree, fanout, probe[i]);
+                    r = harcoded_probing(tree, &probe[i]);
                     result[i]   = r[0];
                     result[i+1] = r[1];
                     result[i+2] = r[2];
                     result[i+3] = r[3];
+                    free(r);
             }
         } else {
             // perform index probing (Phase 2) - The general case
@@ -157,6 +324,7 @@ int main(int argc, char* argv[]) {
         }
 
         // cleanup and exit
+        free(fanout);
         free(result);
         free(probe);
         cleanup_index(tree);
