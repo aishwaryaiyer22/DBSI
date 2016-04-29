@@ -28,7 +28,7 @@ void print128(__m128i x)
 //Harcoded probing function
 int* harcoded_probing(Tree* tree, int32_t* probe) {
         printf("Reached the harcoded_probing function \n");
-        __m128i k = _mm_cvtsi32_si128(probe[0]);
+        __m128i k = _mm_loadu_si128((__m128i*)probe);
         register __m128i k1 = _mm_shuffle_epi32(k, _MM_SHUFFLE(0,0,0,0));
         register __m128i k2 = _mm_shuffle_epi32(k, _MM_SHUFFLE(1,1,1,1));
         register __m128i k3 = _mm_shuffle_epi32(k, _MM_SHUFFLE(2,2,2,2));
@@ -195,7 +195,7 @@ int* harcoded_probing(Tree* tree, int32_t* probe) {
 int probe_gen_search(Tree* tree, size_t *fanout, int32_t probe) 
 {
         // int32_t current_level, int32_t prev_result, int32_t probe, int32_t fanout) {
-        printf("Reached the general probing function \n");
+        //printf("Reached the general probing function \n");
 
         int32_t current_level = 0, prev_result = 0,res;
         int32_t** treeLevels = tree->key_array;
@@ -205,8 +205,7 @@ int probe_gen_search(Tree* tree, size_t *fanout, int32_t probe)
         
         key = _mm_shuffle_epi32(key, 0);
         
-        printf("\nSearching for key\n");
-        print128(key);
+        //print128(key);
 
         for(current_level=0; current_level < num_levels ; current_level++) {
 
@@ -304,6 +303,10 @@ int main(int argc, char* argv[]) {
             int32_t** treeLevels = tree->key_array;
             lvl_A = _mm_load_si128((__m128i*)&treeLevels[0][0]);
             lvl_B = _mm_load_si128((__m128i*)&treeLevels[0][4]);
+            if(num_probes%4!=0) {
+                printf("Probe count should be multiples of 4..\n");
+                goto exit;
+            }
             for (size_t i = 0; i < num_probes; i+=4) {
                     r = harcoded_probing(tree, &probe[i]);
                     result[i]   = r[0];
@@ -314,6 +317,7 @@ int main(int argc, char* argv[]) {
             }
         } else {
             // perform index probing (Phase 2) - The general case
+            printf("Calling the general probing function \n");
             for (size_t i = 0; i < num_probes; ++i) {
                     result[i] = probe_gen_search(tree, fanout, probe[i]);
             }
@@ -323,6 +327,19 @@ int main(int argc, char* argv[]) {
                 fprintf(stdout, "%d %u\n", probe[i], result[i]);
         }
 
+        /*
+        printf("\n\Running it on Normal general case too ");
+// perform index probing (Phase 2) - The general case
+        for (size_t i = 0; i < num_probes; ++i) {
+                result[i] = probe_gen_search(tree, fanout, probe[i]);
+        }
+        
+        // output results
+        for (size_t i = 0; i < num_probes; ++i) {
+                fprintf(stdout, "%d %u\n", probe[i], result[i]);
+        }
+        */
+        exit:
         // cleanup and exit
         free(fanout);
         free(result);
