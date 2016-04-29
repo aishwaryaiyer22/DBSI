@@ -298,6 +298,16 @@ int main(int argc, char* argv[]) {
         assert(result != NULL);
 
         struct timeval tv1, tv2;
+        
+        printf("\nRunning it on Normal general case\n\n");
+        gettimeofday(&tv1,NULL);
+        // perform index probing (Phase 2) - The general case
+        for (size_t i = 0; i < num_probes; ++i) {
+                result[i] = probe_gen_search(tree, fanout, probe[i]);
+        }
+        gettimeofday(&tv2,NULL);
+        double t1 = (tv2.tv_sec - tv1.tv_sec)*1000000 + tv2.tv_usec - tv1.tv_usec;
+
         gettimeofday(&tv1,NULL);
        
         if (num_levels == 3 && fanout[0]==9 && fanout[1] == 5 && fanout[2]== 9) {
@@ -325,21 +335,15 @@ int main(int argc, char* argv[]) {
             /*
             for (size_t i = 0; i < num_probes; ++i) {
                     fprintf(stdout, "%d %u\n", probe[i], result[i]);
-            }*/
+            }
+            */
 
         }
         gettimeofday(&tv2,NULL);
-        int t1 = tv2.tv_usec = tv1.tv_usec;
+        double t2 = (tv2.tv_sec - tv1.tv_sec)*1000000 + tv2.tv_usec - tv1.tv_usec;
         
         
-        printf("\nRunning it on Normal general case\n\n");
-        gettimeofday(&tv1,NULL);
-        // perform index probing (Phase 2) - The general case
-        for (size_t i = 0; i < num_probes; ++i) {
-                result[i] = probe_gen_search(tree, fanout, probe[i]);
-        }
-        gettimeofday(&tv2,NULL);
-        int t2 = tv2.tv_usec = tv1.tv_usec;
+        
         // output results
         /*
         for (size_t i = 0; i < num_probes; ++i) {
@@ -354,7 +358,7 @@ int main(int argc, char* argv[]) {
                 result[i] = probe_index(tree, probe[i]);
         }
         gettimeofday(&tv2,NULL);
-        int t3 = tv2.tv_usec = tv1.tv_usec;
+        double t3 = (tv2.tv_sec - tv1.tv_sec)*1000000 + tv2.tv_usec - tv1.tv_usec;
         // output results
         /*
         for (size_t i = 0; i < num_probes; ++i) {
@@ -362,9 +366,9 @@ int main(int argc, char* argv[]) {
         }
         */
 
-        printf("Time Harcoded = %d \n",t1);
-        printf("Time General  = %d \n",t2);
-        printf("Time BS       = %d \n",t3);
+        printf("Time Harcoded = %f \n",t2);
+        printf("Time General  = %f \n",t1);
+        printf("Time BS       = %f \n",t3);
         
         exit:
         // cleanup and exit
